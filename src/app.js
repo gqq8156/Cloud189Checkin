@@ -46,34 +46,35 @@ const doTask = async (cloudClient) => {
   );
   await delay(5000); // 延迟5秒
 
-  const res2 = await cloudClient.taskSign();
-  buildTaskResult(res2, result);
+ // const res2 = await cloudClient.taskSign();
+ // buildTaskResult(res2, result);
 
-  await delay(5000); // 延迟5秒
-  const res3 = await cloudClient.taskPhoto();
-  buildTaskResult(res3, result);
+  //await delay(5000); // 延迟5秒
+  //const res3 = await cloudClient.taskPhoto();
+  //buildTaskResult(res3, result);
 
   return result;
 };
 
 const doFamilyTask = async (cloudClient) => {
     const { familyInfoResp } = await cloudClient.getFamilyList();
+  let totalFamilyBonus = 0;
     const result = [];
     if (familyInfoResp) {
-        for (let index = 0; index < familyInfoResp.length; index += 1) {
-            const { familyId } = familyInfoResp[index];
-            console.log(familyId);
-            const res = await cloudClient.familyUserSign(familyId);
+
+            const res = await cloudClient.familyUserSign(300001309882437);
             result.push(
-                "家庭任务" + `${familyId}`+
+                "家庭任务" +
                 `${res.signStatus ? "已经签到过了，" : ""}签到获得${
                     res.bonusSpace
                 }M空间`
             );
-        }
+        totalFamilyBonus += res.bonusSpace;
     }
-    return result;
+   
+  return { result, totalFamilyBonus };
 };
+
 const pushServerChan = (title, desp) => {
   if (!serverChan.sendKey) {
     return;
@@ -193,29 +194,32 @@ const push = (title, desp) => {
 
 // 开始执行程序
 async function main() {
+  let totalFamilySpace = 0;
   for (let index = 0; index < accounts.length; index += 1) {
     const account = accounts[index];
+   const number = index +1;
     const { userName, password } = account;
     if (userName && password) {
       const userNameInfo = mask(userName, 3, 7);
       try {
-        logger.log(`账户 ${userNameInfo}开始执行`);
+        logger.log(`${number}`+".    "+`  账户 ${userNameInfo}开始执行`);
         const cloudClient = new CloudClient(userName, password);
         await cloudClient.login();
         const result = await doTask(cloudClient);
         result.forEach((r) => logger.log(r));
-        const familyResult = await doFamilyTask(cloudClient);
+  const { result: familyResult, totalFamilyBonus } = await doFamilyTask(cloudClient);
         familyResult.forEach((r) => logger.log(r));
-        logger.log("任务执行完毕");
+        totalFamilySpace += totalFamilyBonus;
+
         const { cloudCapacityInfo, familyCapacityInfo } =
           await cloudClient.getUserSizeInfo();
         logger.log(
-          `个人总容量：${(
+          `个人：${(
             cloudCapacityInfo.totalSize /
             1024 /
             1024 /
             1024
-          ).toFixed(2)}G,家庭总容量：${(
+          ).toFixed(2)}G, 家庭：${(
             familyCapacityInfo.totalSize /
             1024 /
             1024 /
@@ -228,10 +232,13 @@ async function main() {
           throw e;
         }
       } finally {
-        logger.log(`账户 ${userNameInfo}执行完毕`);
+        logger.log(`账户 ${userNameInfo} 执行完毕----------------`);
       }
     }
   }
+
+  logger.log(`GQQ主账号今天共获得家庭空间：${totalFamilySpace}M`);
+  return totalFamilySpace;
 }
 
 (async () => {
@@ -240,7 +247,7 @@ async function main() {
   } finally {
     const events = recording.replay();
     const content = events.map((e) => `${e.data.join("")}`).join("  \n");
-    push("天翼云盘自动签到任务", content);
+    push("天翼云盘签到任务", content);
     recording.erase();
   }
 })();
