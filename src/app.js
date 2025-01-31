@@ -247,7 +247,7 @@ async function main() {
   } finally {
     const events = recording.replay();
     const content = events.map((e) => `${e.data.join("")}`).join("  \n");
-    push("天翼云盘签到任务", content);
+    push("测试签到任务", content);
     recording.erase();
   }
 })();
