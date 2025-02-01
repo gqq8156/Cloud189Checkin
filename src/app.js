@@ -144,8 +144,8 @@ async function main() {
         await retry(async () => {
           await cloudClient.login();
         }, {
-          retries: 10,
-          minTimeout: 20000, // 重试间隔 30 秒
+          retries: 3,
+          minTimeout: 30000, // 重试间隔 30 秒
           onRetry: (err, attempt) => {
             logger.warn(`登录请求超时，正在进行重试... 第 ${attempt} 次`);
           }
@@ -196,6 +196,13 @@ async function main() {
   accountFamilySpaces.forEach(( { account, familySpace }, index) => {
     logger.log(`${index + 1}. 账户${account} 获得：${familySpace}M`);
   });
+
+  // 推送总家庭空间信息
+  const familySpaceContent = `GQQ主账号今天共获得家庭空间：${totalFamilySpace}M\n` +
+    accountFamilySpaces.map(({ account, familySpace }, index) => `${index + 1}. 账户${account} 获得：${familySpace}M`).join("\n");
+  
+  // 发送推送消息到WxPusher
+  await pushWxPusher("今日获得总家庭空间", familySpaceContent);
 
   return totalFamilySpace;
 }
