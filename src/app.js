@@ -197,13 +197,6 @@ async function main() {
     logger.log(`${index + 1}. 账户${account} 获得：${familySpace}M`);
   });
 
-  // 推送总家庭空间信息
-  const familySpaceContent = `GQQ主账号今天共获得家庭空间：${totalFamilySpace}M\n` +
-    accountFamilySpaces.map(({ account, familySpace }, index) => `${index + 1}. 账户${account} 获得：${familySpace}M`).join("\n");
-  
-  // 发送推送消息到WxPusher
-  await pushWxPusher("今日获得总家庭空间", familySpaceContent);
-
   return totalFamilySpace;
 }
 
