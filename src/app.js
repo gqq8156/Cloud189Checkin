@@ -144,8 +144,8 @@ async function main() {
         await retry(async () => {
           await cloudClient.login();
         }, {
-          retries: 3,
-          minTimeout: 30000, // 重试间隔 30 秒
+          retries: 10,
+          minTimeout: 20000, // 重试间隔 30 秒
           onRetry: (err, attempt) => {
             logger.warn(`登录请求超时，正在进行重试... 第 ${attempt} 次`);
           }
