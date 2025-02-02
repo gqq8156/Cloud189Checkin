@@ -178,7 +178,7 @@ async function main() {
         });
         
         logger.log(
-          `个人：${(cloudCapacityInfo.totalSize / 1024 / 1024 / 1024).toFixed(2)}G, 家庭：${(familyCapacityInfo.totalSize / 1024 / 1024 / 1024).toFixed(2)}G\n\n`
+          `个人：${(cloudCapacityInfo.totalSize / 1024 / 1024 / 1024).toFixed(2)}G, 家庭：${(familyCapacityInfo.totalSize / 1024 / 1024 / 1024).toFixed(2)}G\n`
         );
       } catch (e) {
         logger.error(e);
@@ -190,7 +190,7 @@ async function main() {
   }
 
   // 输出总家庭空间和每个账号获得的家庭空间
-  logger.log(`\n\nGQQ主账号今天共获得家庭空间：${totalFamilySpace}M\n\n`);
+  logger.log(`\nGQQ主账号今天共获得家庭空间：${totalFamilySpace}M\n\n`);
   accountFamilySpaces.forEach(( { account, familySpace }, index) => {
     logger.log(`${index + 1}. 账户${account} 获得：${familySpace}M`);
   });
