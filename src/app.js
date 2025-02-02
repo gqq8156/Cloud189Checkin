@@ -137,7 +137,7 @@ async function main() {
     if (userName && password) {
       const userNameInfo = mask(userName, 3, 7);
       try {
-        logger.log(`${number}` + ".    " + `账户 ${userNameInfo} 开始执行`);
+        logger.log(`${number}` + ".    " + `账户 ${userNameInfo} 开始执行----------------`);
         const cloudClient = new CloudClient(userName, password);
         
         // 为登录操作添加重试机制
@@ -185,9 +185,7 @@ async function main() {
         if (e.code === "ETIMEDOUT") {
           throw e;
         }
-      } finally {
-        logger.log(`账户 ${userNameInfo} 执行完毕----------------`);
-      }
+      } 
     }
   }
 
