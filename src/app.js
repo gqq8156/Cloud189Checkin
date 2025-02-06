@@ -109,4 +109,109 @@ const pushWxPusher = (title, desp) => {
         if (json.data[0].code !== 1000) {
           throw new Error(`wxPusher推送失败:${JSON.stringify(json)}`);
         } else {
-          logger.info("wxPush
+          logger.info("wxPusher推送成功");
+        }
+      })
+      .catch((err) => {
+        throw new Error(`wxPusher推送失败:${JSON.stringify(err)}`);
+      });
+  }, {
+    retries: 5, // 最大重试次数
+    minTimeout: 20000, // 重试间隔 30 秒
+    onRetry: (err, attempt) => {
+      logger.warn(`wxPusher推送失败，正在进行重试... 第 ${attempt} 次`);
+    }
+  });
+};
+
+// 开始执行程序
+async function main() {
+  let totalFamilySpace = 0;
+  let accountFamilySpaces = []; // 用于记录每个账号获得的家庭空间
+  
+  for (let index = 0; index < accounts.length; index += 1) {
+    const account = accounts[index];
+    const number = index + 1;
+    const { userName, password } = account;
+    
+    if (userName && password) {
+      const userNameInfo = mask(userName, 3, 7);
+      try {
+        logger.log(`${number}` + ".    " + `账户 ${userNameInfo} 开始执行-------------`);
+        const cloudClient = new CloudClient(userName, password);
+        
+        // 为登录操作添加重试机制
+        await retry(async () => {
+          await cloudClient.login();
+        }, {
+          retries: 5,
+          minTimeout: 30000, // 重试间隔 30 秒
+          onRetry: (err, attempt) => {
+            logger.warn(`登录请求超时，正在进行重试... 第 ${attempt} 次`);
+          }
+        });
+        
+        // 执行任务
+        const result = await doTask(cloudClient);
+        result.forEach((r) => logger.log(r));
+        
+        // 执行家庭任务
+        const { result: familyResult, totalFamilyBonus } = await doFamilyTask(cloudClient);
+        familyResult.forEach((r) => logger.log(r));
+        totalFamilySpace += totalFamilyBonus;
+        
+        // 记录每个账号获得的家庭空间
+        accountFamilySpaces.push({
+          account: userNameInfo,
+          familySpace: totalFamilyBonus
+        });
+
+        // 获取并输出云盘容量信息
+        const { cloudCapacityInfo, familyCapacityInfo } = await retry(async () => {
+          return cloudClient.getUserSizeInfo();
+        }, {
+          retries: 5,
+          minTimeout: 30000, // 重试间隔 30 秒
+          onRetry: (err, attempt) => {
+            logger.warn(`获取云盘容量请求超时，正在进行重试... 第 ${attempt} 次`);
+          }
+        });
+        
+        logger.log(
+          `个人：${(cloudCapacityInfo.totalSize / 1024 / 1024 / 1024).toFixed(2)}G, 家庭：${(familyCapacityInfo.totalSize / 1024 / 1024 / 1024).toFixed(2)}G\n`
+        );
+      } catch (e) {
+        logger.error(e);
+        if (e.code === "ETIMEDOUT") {
+          throw e;
+        }
+      } 
+    }
+  }
+
+  // 输出总家庭空间和每个账号获得的家庭空间
+  logger.log(`GQQ主账号今天共获得家庭空间：${totalFamilySpace}M\n`);
+  accountFamilySpaces.forEach(( { account, familySpace }, index) => {
+    logger.log(`${index + 1}. 账户${account} 获得：${familySpace}M`);
+  });
+
+  return totalFamilySpace;
+}
+
+(async () => {
+  try {
+    await main(); // 执行主任务
+  } finally {
+    try {
+      const events = recording.replay(); // 获取日志
+      const content = events.map((e) => Array.isArray(e.data) ? e.data.join("") : String(e.data)).join("  \n");
+      
+      await pushWxPusher("天翼云盘签到(测试)", content); // 先推送日志
+      
+    } catch (error) {
+      logger.error("推送日志时发生错误：", error);
+    } finally {
+      recording.erase(); // 确保日志被清理
+    }
+  }
+})();
